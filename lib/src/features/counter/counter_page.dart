@@ -1,6 +1,7 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:mesh_gradient/mesh_gradient.dart';
 
 import 'counter_page_view_model.dart';
 
@@ -13,23 +14,24 @@ class CounterPage extends StatefulWidget {
 
 class _CounterPageState extends State<CounterPage>
     with TickerProviderStateMixin {
-  late AnimationController _animationController;
+  late final _meshController = AnimatedMeshGradientController();
+  late final _animationController = AnimationController(
+      duration: const Duration(milliseconds: 100), vsync: this);
 
   final _viewModel = GetIt.I<CounterPageViewModel>();
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 100),
-      vsync: this,
-    )..forward(from: 0);
+    _animationController.forward(from: 0);
+    _meshController.start();
   }
 
   @override
   void dispose() {
     _viewModel.dispose();
     _animationController.dispose();
+    _meshController.dispose();
     super.dispose();
   }
 
@@ -87,9 +89,7 @@ class _CounterPageState extends State<CounterPage>
                     wrapWords: false,
                     style: TextStyle(
                       fontSize: 200,
-                      fontFeatures: const [
-                        FontFeature.tabularFigures(),
-                      ],
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
                 );
@@ -102,14 +102,19 @@ class _CounterPageState extends State<CounterPage>
   }
 
   Widget _buildBackground() {
-    // TODO: Use gradient for estetik
     return ValueListenableBuilder(
-      valueListenable: _viewModel.colorNotifier,
-      builder: (context, color, __) {
-        return Container(
-          color: color,
-          width: double.infinity,
-          height: double.infinity,
+      valueListenable: _viewModel.colorsNotifier,
+      builder: (context, colors, __) {
+        return SizedBox.expand(
+          key: ValueKey(colors.toString()),
+          child: AnimatedMeshGradient(
+            controller: _meshController,
+            colors: colors,
+            options: AnimatedMeshGradientOptions(
+              grain: 0.08,
+              frequency: 7,
+            ),
+          ),
         );
       },
     );

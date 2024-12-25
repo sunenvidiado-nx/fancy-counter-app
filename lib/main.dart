@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -26,9 +27,13 @@ Future<void> _setUpDiAndViewModels() async {
     cacheOptions: const SharedPreferencesWithCacheOptions(),
   );
 
+  // Register dependencies
   GetIt.I
-    ..registerSingleton(sharedPrefs)
-    ..registerFactory(() => CounterPageViewModel(GetIt.I()));
+    ..registerLazySingleton(() => sharedPrefs)
+    ..registerLazySingleton(Random.new);
+
+  // Register view models
+  GetIt.I.registerFactory(() => CounterPageViewModel(GetIt.I(), GetIt.I()));
 }
 
 void _setUpNavigationAndStatusBarColors() {
