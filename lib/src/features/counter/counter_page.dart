@@ -18,6 +18,7 @@ class _CounterPageState extends State<CounterPage>
     with TickerProviderStateMixin {
   late final MeshGradientController _gradientController;
   late final AnimationController _textAnimationController;
+  final _random = GetIt.I<Random>();
   final _viewModel = GetIt.I<CounterPageViewModel>();
 
   @override
@@ -56,23 +57,23 @@ class _CounterPageState extends State<CounterPage>
   List<MeshGradientPoint> _createRandomGradientPoints(List<Color> colors) {
     return [
       MeshGradientPoint(
-        position: Offset(0.2 + Random().nextDouble() * 0.2,
-            0.3 + Random().nextDouble() * 0.4),
+        position: Offset(
+            0.2 + _random.nextDouble() * 0.2, 0.3 + _random.nextDouble() * 0.4),
         color: colors[0],
       ),
       MeshGradientPoint(
-        position: Offset(0.5 + Random().nextDouble() * 0.3,
-            0.5 + Random().nextDouble() * 0.4),
+        position: Offset(
+            0.5 + _random.nextDouble() * 0.3, 0.5 + _random.nextDouble() * 0.4),
         color: colors[1],
       ),
       MeshGradientPoint(
-        position: Offset(0.8 + Random().nextDouble() * 0.2,
-            0.6 + Random().nextDouble() * 0.3),
+        position: Offset(
+            0.8 + _random.nextDouble() * 0.2, 0.6 + _random.nextDouble() * 0.3),
         color: colors[2],
       ),
       MeshGradientPoint(
-        position: Offset(0.5 + Random().nextDouble() * 0.3,
-            0.9 + Random().nextDouble() * 0.1),
+        position: Offset(
+            0.5 + _random.nextDouble() * 0.3, 0.9 + _random.nextDouble() * 0.1),
         color: colors[3],
       ),
     ];
@@ -85,8 +86,8 @@ class _CounterPageState extends State<CounterPage>
         AnimationSequence(
           pointIndex: 0,
           newPoint: MeshGradientPoint(
-            position: Offset(0.1 + Random().nextDouble() * 0.8,
-                0.1 + Random().nextDouble() * 0.8),
+            position: Offset(0.1 + _random.nextDouble() * 0.8,
+                0.1 + _random.nextDouble() * 0.8),
             color: colors[0],
           ),
           interval: const Interval(0, 0.25),
@@ -94,8 +95,8 @@ class _CounterPageState extends State<CounterPage>
         AnimationSequence(
           pointIndex: 1,
           newPoint: MeshGradientPoint(
-            position: Offset(0.1 + Random().nextDouble() * 0.8,
-                0.1 + Random().nextDouble() * 0.8),
+            position: Offset(0.1 + _random.nextDouble() * 0.8,
+                0.1 + _random.nextDouble() * 0.8),
             color: colors[1],
           ),
           interval: const Interval(0.25, 0.5),
@@ -103,8 +104,8 @@ class _CounterPageState extends State<CounterPage>
         AnimationSequence(
           pointIndex: 2,
           newPoint: MeshGradientPoint(
-            position: Offset(0.1 + Random().nextDouble() * 0.8,
-                0.1 + Random().nextDouble() * 0.8),
+            position: Offset(0.1 + _random.nextDouble() * 0.8,
+                0.1 + _random.nextDouble() * 0.8),
             color: colors[2],
           ),
           interval: const Interval(0.5, 0.75),
@@ -112,8 +113,8 @@ class _CounterPageState extends State<CounterPage>
         AnimationSequence(
           pointIndex: 3,
           newPoint: MeshGradientPoint(
-            position: Offset(0.1 + Random().nextDouble() * 0.8,
-                0.1 + Random().nextDouble() * 0.8),
+            position: Offset(0.1 + _random.nextDouble() * 0.8,
+                0.1 + _random.nextDouble() * 0.8),
             color: colors[3],
           ),
           interval: const Interval(0.75, 1),
