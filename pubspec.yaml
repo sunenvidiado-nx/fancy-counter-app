@@ -25,7 +25,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/google_fonts/Teko/
-    - assets/splash/
+    - assets/images/
   fonts:
     - family: Teko
       fonts:
@@ -41,4 +41,4 @@ flutter:
 
 flutter_native_splash:
   color: "#ffffff"
-  image: assets/splash/splash.png
+  image: assets/images/splash.png
