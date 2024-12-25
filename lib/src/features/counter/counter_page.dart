@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -14,24 +16,30 @@ class CounterPage extends StatefulWidget {
 
 class _CounterPageState extends State<CounterPage>
     with TickerProviderStateMixin {
-  late final _meshController = AnimatedMeshGradientController();
-  late final _animationController = AnimationController(
-      duration: const Duration(milliseconds: 100), vsync: this);
-
+  late final MeshGradientController _gradientController;
+  late final AnimationController _textAnimationController;
   final _viewModel = GetIt.I<CounterPageViewModel>();
 
   @override
   void initState() {
     super.initState();
-    _animationController.forward(from: 0);
-    _meshController.start();
+    _textAnimationController = AnimationController(
+        duration: const Duration(milliseconds: 100), vsync: this);
+    _textAnimationController.forward(from: 0);
+    _gradientController = MeshGradientController(
+      points: _createRandomGradientPoints(_viewModel.colorsNotifier.value),
+      vsync: this,
+    );
+    _viewModel.colorsNotifier.addListener(() {
+      _animateGradient(_gradientController, _viewModel.colorsNotifier.value);
+    });
   }
 
   @override
   void dispose() {
     _viewModel.dispose();
-    _animationController.dispose();
-    _meshController.dispose();
+    _textAnimationController.dispose();
+    _gradientController.dispose();
     super.dispose();
   }
 
@@ -45,6 +53,89 @@ class _CounterPageState extends State<CounterPage>
     );
   }
 
+  List<MeshGradientPoint> _createRandomGradientPoints(List<Color> colors) {
+    return [
+      MeshGradientPoint(
+        position: Offset(0.2 + Random().nextDouble() * 0.2,
+            0.3 + Random().nextDouble() * 0.4),
+        color: colors[0],
+      ),
+      MeshGradientPoint(
+        position: Offset(0.5 + Random().nextDouble() * 0.3,
+            0.5 + Random().nextDouble() * 0.4),
+        color: colors[1],
+      ),
+      MeshGradientPoint(
+        position: Offset(0.8 + Random().nextDouble() * 0.2,
+            0.6 + Random().nextDouble() * 0.3),
+        color: colors[2],
+      ),
+      MeshGradientPoint(
+        position: Offset(0.5 + Random().nextDouble() * 0.3,
+            0.9 + Random().nextDouble() * 0.1),
+        color: colors[3],
+      ),
+    ];
+  }
+
+  void _animateGradient(MeshGradientController controller, List<Color> colors) {
+    controller.animateSequence(
+      duration: const Duration(seconds: 5),
+      sequences: [
+        AnimationSequence(
+          pointIndex: 0,
+          newPoint: MeshGradientPoint(
+            position: Offset(0.1 + Random().nextDouble() * 0.8,
+                0.1 + Random().nextDouble() * 0.8),
+            color: colors[0],
+          ),
+          interval: const Interval(0, 0.25),
+        ),
+        AnimationSequence(
+          pointIndex: 1,
+          newPoint: MeshGradientPoint(
+            position: Offset(0.1 + Random().nextDouble() * 0.8,
+                0.1 + Random().nextDouble() * 0.8),
+            color: colors[1],
+          ),
+          interval: const Interval(0.25, 0.5),
+        ),
+        AnimationSequence(
+          pointIndex: 2,
+          newPoint: MeshGradientPoint(
+            position: Offset(0.1 + Random().nextDouble() * 0.8,
+                0.1 + Random().nextDouble() * 0.8),
+            color: colors[2],
+          ),
+          interval: const Interval(0.5, 0.75),
+        ),
+        AnimationSequence(
+          pointIndex: 3,
+          newPoint: MeshGradientPoint(
+            position: Offset(0.1 + Random().nextDouble() * 0.8,
+                0.1 + Random().nextDouble() * 0.8),
+            color: colors[3],
+          ),
+          interval: const Interval(0.75, 1),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBackground() {
+    return ValueListenableBuilder(
+      valueListenable: _viewModel.colorsNotifier,
+      builder: (context, colors, _) {
+        return SizedBox.expand(
+          child: MeshGradient(
+            controller: _gradientController,
+            options: MeshGradientOptions(),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildCounterBody() {
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -52,8 +143,11 @@ class _CounterPageState extends State<CounterPage>
         color: Colors.black45,
         onRefresh: _viewModel.reset,
         child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: _onTap,
+          behavior: HitTestBehavior.translucent,
+          onTap: () {
+            _viewModel.increment();
+            _textAnimationController.forward(from: 0);
+          },
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
@@ -67,11 +161,6 @@ class _CounterPageState extends State<CounterPage>
     );
   }
 
-  void _onTap() {
-    _viewModel.increment();
-    _animationController.forward(from: 0);
-  }
-
   Widget _buildCountText() {
     return ValueListenableBuilder(
       valueListenable: _viewModel.counterNotifier,
@@ -80,10 +169,10 @@ class _CounterPageState extends State<CounterPage>
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18),
             child: AnimatedBuilder(
-              animation: _animationController,
+              animation: _textAnimationController,
               builder: (context, child) {
                 return Transform.scale(
-                  scale: 1 + (0.12 * _animationController.value),
+                  scale: 1 + (0.12 * _textAnimationController.value),
                   child: AutoSizeText(
                     count < 10 ? '0$count' : '$count',
                     wrapWords: false,
@@ -94,25 +183,6 @@ class _CounterPageState extends State<CounterPage>
                   ),
                 );
               },
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildBackground() {
-    return ValueListenableBuilder(
-      valueListenable: _viewModel.colorsNotifier,
-      builder: (context, colors, __) {
-        return SizedBox.expand(
-          key: ValueKey(colors.toString()),
-          child: AnimatedMeshGradient(
-            controller: _meshController,
-            colors: colors,
-            options: AnimatedMeshGradientOptions(
-              grain: 0.08,
-              frequency: 7,
             ),
           ),
         );

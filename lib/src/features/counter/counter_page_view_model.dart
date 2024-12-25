@@ -17,7 +17,7 @@ class CounterPageViewModel {
   static const _colorKey = 's36NCAFQuToE';
 
   final counterNotifier = ValueNotifier(0);
-  final colorsNotifier = ValueNotifier<List<Color>>([]);
+  final colorsNotifier = ValueNotifier(<Color>[]);
 
   Timer? _debounceTimer;
   int _pendingCount = 0;
@@ -47,24 +47,29 @@ class CounterPageViewModel {
   List<Color> _generateColors() {
     return [
       Color.fromRGBO(
-        150 + _random.nextInt(106),
-        150 + _random.nextInt(106),
-        150 + _random.nextInt(106),
+        100 + _random.nextInt(156),
+        100 + _random.nextInt(156),
+        100 + _random.nextInt(156),
         1.0,
       ),
       Color.fromRGBO(
-        150 + _random.nextInt(106),
-        150 + _random.nextInt(106),
-        150 + _random.nextInt(106),
+        100 + _random.nextInt(156),
+        100 + _random.nextInt(156),
+        100 + _random.nextInt(156),
         1.0,
       ),
       Color.fromRGBO(
-        150 + _random.nextInt(106),
-        150 + _random.nextInt(106),
-        150 + _random.nextInt(106),
+        100 + _random.nextInt(156),
+        100 + _random.nextInt(156),
+        100 + _random.nextInt(156),
         1.0,
       ),
-      Colors.white,
+      Color.fromRGBO(
+        200 + _random.nextInt(56),
+        200 + _random.nextInt(56),
+        200 + _random.nextInt(56),
+        1.0,
+      ),
     ]..shuffle();
   }
 
@@ -75,14 +80,18 @@ class CounterPageViewModel {
   /// A debounce timer is used to prevent the counter from being cached too often.
   void increment() {
     final newCount = counterNotifier.value + 1;
+
     counterNotifier.value = newCount;
     _pendingCount = newCount;
+
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(seconds: 2), () {
       _prefs.setInt(_counterKey, _pendingCount);
     });
 
-    if (newCount % 20 == 0) _changeColors();
+    if (newCount % 10 == 0) {
+      _changeColors();
+    }
   }
 
   void _changeColors() {
