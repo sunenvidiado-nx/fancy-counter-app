@@ -1,11 +1,11 @@
 name: fancy_counter_app
 description: "A new Flutter project."
 publish_to: "none"
-version: 1.1.0+1
+version: 1.2.0+1
 
 environment:
   sdk: ^3.6.0
-  flutter: '>=3.27.1'
+  flutter: ">=3.27.1"
 
 dependencies:
   auto_size_text: ^3.0.0
