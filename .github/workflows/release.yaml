@@ -52,7 +52,7 @@ jobs:
       packages: write
       actions: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: subosito/flutter-action@v2
         with:
@@ -134,4 +134,5 @@ jobs:
           body: |
             ${{ steps.changelog.outputs.content }}
 
-            > Note: The IPA file is unsigned and intended solely for testing purposes. It is not eligible for App Store submission. Installation and execution on a device require a developer account and Xcode.
+            > [!WARNING]
+            > The IPA file is unsigned and intended solely for testing purposes. It is not eligible for App Store submission. It requires a developer account and Xcode to install and run on a device.

@@ -9,7 +9,7 @@ A fancy counter app that provides an interactive counting experience with dynami
 ## Features
 
 - Incrementable counter
-- Automatic color transformation every 10 counts
+- Automatic color transformation every 20 counts
 - Persistent state across app restarts
 - Clean, minimalist design
 
