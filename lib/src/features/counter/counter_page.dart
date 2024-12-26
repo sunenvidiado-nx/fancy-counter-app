@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -18,21 +16,54 @@ class _CounterPageState extends State<CounterPage>
     with TickerProviderStateMixin {
   late final MeshGradientController _gradientController;
   late final AnimationController _textAnimationController;
-  final _random = GetIt.I<Random>();
   final _viewModel = GetIt.I<CounterPageViewModel>();
 
   @override
   void initState() {
     super.initState();
+    _initializeControllers();
+    _setupColorListener();
+  }
+
+  void _initializeControllers() {
     _textAnimationController = AnimationController(
-        duration: const Duration(milliseconds: 100), vsync: this);
-    _textAnimationController.forward(from: 0);
+      duration: const Duration(milliseconds: 100),
+      vsync: this,
+    )..forward(from: 0);
+
     _gradientController = MeshGradientController(
-      points: _createRandomGradientPoints(_viewModel.colorsNotifier.value),
+      points: _viewModel.createGradientPoints(),
       vsync: this,
     );
+
+    // Start continuous background animation
+    _startContinuousAnimation();
+  }
+
+  void _startContinuousAnimation() {
+    Future<void> animate() async {
+      while (mounted) {
+        await _gradientController.animateSequence(
+          duration: const Duration(seconds: 15), // Slower continuous movement
+          sequences:
+              _viewModel.createGradientAnimationSequences(isColorChange: false),
+        );
+      }
+    }
+
+    animate();
+  }
+
+  void _setupColorListener() {
     _viewModel.colorsNotifier.addListener(() {
-      _animateGradient(_gradientController, _viewModel.colorsNotifier.value);
+      // Slower color change animation
+      _gradientController
+          .animateSequence(
+            duration: const Duration(seconds: 3), // Smoother color transition
+            sequences: _viewModel.createGradientAnimationSequences(
+                isColorChange: true),
+          )
+          .then((_) => _startContinuousAnimation());
     });
   }
 
@@ -48,112 +79,65 @@ class _CounterPageState extends State<CounterPage>
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        _buildBackground(),
-        _buildCounterBody(),
-      ],
-    );
-  }
-
-  List<MeshGradientPoint> _createRandomGradientPoints(List<Color> colors) {
-    return [
-      MeshGradientPoint(
-        position: Offset(0.15 + _random.nextDouble() * 0.2,
-            0.15 + _random.nextDouble() * 0.2),
-        color: colors[0],
-      ),
-      MeshGradientPoint(
-        position: Offset(0.55 + _random.nextDouble() * 0.2,
-            0.25 + _random.nextDouble() * 0.2),
-        color: colors[1],
-      ),
-      MeshGradientPoint(
-        position: Offset(0.25 + _random.nextDouble() * 0.2,
-            0.65 + _random.nextDouble() * 0.2),
-        color: colors[2],
-      ),
-      MeshGradientPoint(
-        position: Offset(0.65 + _random.nextDouble() * 0.2,
-            0.75 + _random.nextDouble() * 0.2),
-        color: colors[3],
-      ),
-    ];
-  }
-
-  void _animateGradient(MeshGradientController controller, List<Color> colors) {
-    controller.animateSequence(
-      duration: const Duration(seconds: 8),
-      sequences: [
-        AnimationSequence(
-          pointIndex: 0,
-          newPoint: MeshGradientPoint(
-            position: Offset(0.2 + _random.nextDouble() * 0.25,
-                0.2 + _random.nextDouble() * 0.25),
-            color: colors[0],
-          ),
-          interval: const Interval(0, 0.25),
-        ),
-        AnimationSequence(
-          pointIndex: 1,
-          newPoint: MeshGradientPoint(
-            position: Offset(0.6 + _random.nextDouble() * 0.25,
-                0.3 + _random.nextDouble() * 0.25),
-            color: colors[1],
-          ),
-          interval: const Interval(0.25, 0.5),
-        ),
-        AnimationSequence(
-          pointIndex: 2,
-          newPoint: MeshGradientPoint(
-            position: Offset(0.3 + _random.nextDouble() * 0.25,
-                0.7 + _random.nextDouble() * 0.25),
-            color: colors[2],
-          ),
-          interval: const Interval(0.5, 0.75),
-        ),
-        AnimationSequence(
-          pointIndex: 3,
-          newPoint: MeshGradientPoint(
-            position: Offset(0.7 + _random.nextDouble() * 0.25,
-                0.6 + _random.nextDouble() * 0.25),
-            color: colors[3],
-          ),
-          interval: const Interval(0.75, 1),
+        _GradientBackground(_gradientController),
+        _CounterContent(
+          viewModel: _viewModel,
+          textAnimationController: _textAnimationController,
         ),
       ],
     );
   }
+}
 
-  Widget _buildBackground() {
-    return ValueListenableBuilder(
-      valueListenable: _viewModel.colorsNotifier,
-      builder: (context, colors, _) {
-        return SizedBox.expand(
-          child: MeshGradient(
-            controller: _gradientController,
-            options: MeshGradientOptions(),
-          ),
-        );
-      },
+class _GradientBackground extends StatelessWidget {
+  const _GradientBackground(this.controller);
+
+  final MeshGradientController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.expand(
+      child: MeshGradient(
+        controller: controller,
+        options: MeshGradientOptions(),
+      ),
     );
   }
+}
 
-  Widget _buildCounterBody() {
+class _CounterContent extends StatelessWidget {
+  const _CounterContent({
+    required this.viewModel,
+    required this.textAnimationController,
+  });
+
+  final CounterPageViewModel viewModel;
+  final AnimationController textAnimationController;
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: RefreshIndicator(
         color: Colors.black45,
-        onRefresh: _viewModel.reset,
+        onRefresh: () async {
+          await viewModel.reset();
+          textAnimationController.forward(from: 0);
+        },
         child: GestureDetector(
           behavior: HitTestBehavior.translucent,
           onTap: () {
-            _viewModel.increment();
-            _textAnimationController.forward(from: 0);
+            viewModel.increment();
+            textAnimationController.forward(from: 0);
           },
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               SliverFillRemaining(
-                child: _buildCountText(),
+                child: _CounterDisplay(
+                  counterNotifier: viewModel.counterNotifier,
+                  textAnimationController: textAnimationController,
+                ),
               ),
             ],
           ),
@@ -161,25 +145,36 @@ class _CounterPageState extends State<CounterPage>
       ),
     );
   }
+}
 
-  Widget _buildCountText() {
-    return ValueListenableBuilder(
-      valueListenable: _viewModel.counterNotifier,
+class _CounterDisplay extends StatelessWidget {
+  const _CounterDisplay({
+    required this.counterNotifier,
+    required this.textAnimationController,
+  });
+
+  final ValueNotifier<int> counterNotifier;
+  final AnimationController textAnimationController;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<int>(
+      valueListenable: counterNotifier,
       builder: (context, count, _) {
         return Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18),
             child: AnimatedBuilder(
-              animation: _textAnimationController,
-              builder: (context, child) {
+              animation: textAnimationController,
+              builder: (context, _) {
                 return Transform.scale(
-                  scale: 1 + (0.12 * _textAnimationController.value),
+                  scale: 1 + (0.12 * textAnimationController.value),
                   child: AutoSizeText(
                     count < 10 ? '0$count' : '$count',
                     wrapWords: false,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 200,
-                      fontFeatures: const [FontFeature.tabularFigures()],
+                      fontFeatures: [FontFeature.tabularFigures()],
                     ),
                   ),
                 );
