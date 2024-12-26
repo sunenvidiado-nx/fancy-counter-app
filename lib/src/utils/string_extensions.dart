@@ -6,7 +6,9 @@ extension StringColorExtension on String {
     if (hexString.length != 6 && hexString.length != 8) {
       throw FormatException('Invalid hex color string: $this');
     }
-    final hexValue = int.parse(hexString.length == 8 ? hexString : 'ff$hexString', radix: 16);
+    final hexValue = int.parse(
+        hexString.length == 8 ? hexString : 'ff$hexString',
+        radix: 16);
     return Color(hexValue);
   }
 }
