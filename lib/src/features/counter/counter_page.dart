@@ -36,7 +36,6 @@ class _CounterPageState extends State<CounterPage>
       vsync: this,
     );
 
-    // Start continuous background animation
     _startContinuousAnimation();
   }
 
@@ -44,7 +43,7 @@ class _CounterPageState extends State<CounterPage>
     Future<void> animate() async {
       while (mounted) {
         await _gradientController.animateSequence(
-          duration: const Duration(seconds: 15), // Slower continuous movement
+          duration: const Duration(seconds: 20),
           sequences:
               _viewModel.createGradientAnimationSequences(isColorChange: false),
         );
@@ -56,10 +55,9 @@ class _CounterPageState extends State<CounterPage>
 
   void _setupColorListener() {
     _viewModel.colorsNotifier.addListener(() {
-      // Slower color change animation
       _gradientController
           .animateSequence(
-            duration: const Duration(seconds: 3), // Smoother color transition
+            duration: const Duration(seconds: 3),
             sequences: _viewModel.createGradientAnimationSequences(
                 isColorChange: true),
           )

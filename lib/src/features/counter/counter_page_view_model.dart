@@ -15,7 +15,7 @@ class CounterPageViewModel {
   final SharedPreferencesWithCache _prefs;
   final Random _random;
 
-  // http://bit.ly/random-strings-generator
+  // Generate cache keys here: http://bit.ly/random-strings-generator
   static const _counterKey = 'Z01CGxdl8KtF';
   static const _colorKey = 's36NCAFQuToE';
 
@@ -65,25 +65,15 @@ class CounterPageViewModel {
 
   List<Color> _generateColors() {
     final baseHue = _random.nextDouble() * 360;
-    final hueOffsets = [
-      0.0,
-      60 + _random.nextDouble() * 30, // analogous
-      180 + _random.nextDouble() * 60, // split complement
-      240 + _random.nextDouble() * 60, // triadic
-    ];
+    final complementaryHue = (baseHue + 180) % 360;
 
-    final colors = <Color>[];
-    for (final offset in hueOffsets) {
-      final hue = (baseHue + offset) % 360;
-      colors.add(
-        HSLColor.fromAHSL(
-          1.0,
-          hue,
-          0.7 + _random.nextDouble() * 0.3, // saturation: 0.7-1.0
-          0.3 + _random.nextDouble() * 0.5, // lightness: 0.3-0.8
-        ).toColor(),
-      );
-    }
+    final colors = [
+      HSLColor.fromAHSL(1.0, baseHue, 0.15, 0.95).toColor(), // Near-white
+      HSLColor.fromAHSL(1.0, baseHue, 0.85, 0.5).toColor(), // Mid
+      HSLColor.fromAHSL(1.0, baseHue, 0.9, 0.3).toColor(), // Dark
+      HSLColor.fromAHSL(1.0, complementaryHue, 0.85, 0.6)
+          .toColor(), // Complement
+    ];
 
     return colors..shuffle();
   }
@@ -91,10 +81,11 @@ class CounterPageViewModel {
   List<MeshGradientPoint> createGradientPoints() {
     final colors = colorsNotifier.value;
     final basePositions = [
-      [-0.5, -0.5], // far outside corners for dramatic spread
+      [-0.5, -0.5],
       [0.3, -0.3],
       [0.7, 1.3],
       [1.5, 1.5],
+      [0.0, 0.0],
     ];
 
     return List.generate(4, (index) {
@@ -106,7 +97,7 @@ class CounterPageViewModel {
 
       return MeshGradientPoint(
         position: Offset(
-          x.clamp(-0.8, 1.8), // allow points far outside for smooth edges
+          x.clamp(-0.8, 1.8),
           y.clamp(-0.8, 1.8),
         ),
         color: colors[index],
@@ -114,12 +105,12 @@ class CounterPageViewModel {
     });
   }
 
-  List<AnimationSequence> createGradientAnimationSequences(
-      {bool isColorChange = false}) {
+  List<AnimationSequence> createGradientAnimationSequences({
+    bool isColorChange = false,
+  }) {
     final colors = colorsNotifier.value;
     final targetPositions = isColorChange
         ? [
-            // Quick color change positions
             [
               -0.5 + _random.nextDouble() * 0.4,
               -0.5 + _random.nextDouble() * 0.4
@@ -138,7 +129,6 @@ class CounterPageViewModel {
             ],
           ]
         : [
-            // Continuous movement positions
             [
               -0.3 + _random.nextDouble() * 1.6,
               -0.3 + _random.nextDouble() * 1.6
@@ -157,7 +147,6 @@ class CounterPageViewModel {
             ],
           ];
 
-    // Different curves for varied movement
     final curves = isColorChange
         ? [
             Curves.easeInOutSine,
