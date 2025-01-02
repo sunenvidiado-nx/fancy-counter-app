@@ -63,33 +63,128 @@ class CounterPageViewModel {
     _prefs.setString(_colorKey, mergedColors);
   }
 
+  // Calculate color difference using HSL values
+  double _getColorDifference(HSLColor a, HSLColor b) {
+    // Weight hue differences more heavily to avoid similar colors
+    double hueDiff = (a.hue - b.hue).abs();
+    if (hueDiff > 180) hueDiff = 360 - hueDiff;
+
+    // Normalize differences to 0-1 range
+    hueDiff /= 180;
+    final satDiff = (a.saturation - b.saturation).abs();
+    final lightDiff = (a.lightness - b.lightness).abs();
+
+    // Weight hue more heavily in the difference calculation
+    return hueDiff * 0.7 + satDiff * 0.15 + lightDiff * 0.15;
+  }
+
+  // Generate a new hue that's different from previous hues
+  double _generateDistinctHue(List<double> previousHues) {
+    double hue;
+    int attempts = 0;
+    const minHueDifference = 30.0; // Minimum difference in degrees
+
+    do {
+      hue = _random.nextDouble() * 360;
+      attempts++;
+
+      // Skip the usual green and purple ranges more aggressively
+      if ((hue >= 90 && hue <= 150) || (hue >= 270 && hue <= 330)) {
+        continue;
+      }
+
+      // Check if this hue is different enough from previous hues
+      bool isDifferentEnough = previousHues.every((prevHue) {
+        double diff = (hue - prevHue).abs();
+        if (diff > 180) diff = 360 - diff;
+        return diff >= minHueDifference;
+      });
+
+      if (isDifferentEnough || attempts > 50) {
+        return hue;
+      }
+    } while (attempts <= 50);
+
+    return hue;
+  }
+
   List<Color> _generateColors() {
-    final baseHue = _random.nextDouble() * 360;
-    final complementaryHue = (baseHue + 180) % 360;
+    final previousColors =
+        colorsNotifier.value.map((c) => HSLColor.fromColor(c)).toList();
+    final newHues = <double>[];
+    final newColors = <Color>[];
 
-    final colors = [
-      HSLColor.fromAHSL(1.0, baseHue, 0.15, 0.95).toColor(), // Near-white
-      HSLColor.fromAHSL(1.0, baseHue, 0.85, 0.5).toColor(), // Mid
-      HSLColor.fromAHSL(1.0, baseHue, 0.9, 0.3).toColor(), // Dark
-      HSLColor.fromAHSL(1.0, complementaryHue, 0.85, 0.6)
-          .toColor(), // Complement
-    ];
+    for (int i = 0; i < 4; i++) {
+      var hue = _generateDistinctHue(newHues);
+      newHues.add(hue);
 
-    return colors..shuffle();
+      // Vary saturation and lightness based on position
+      HSLColor newColor;
+      switch (i) {
+        case 0: // Near-white
+          newColor = HSLColor.fromAHSL(1.0, hue, 0.15, 0.95);
+          break;
+        case 1: // Mid-tone
+          newColor = HSLColor.fromAHSL(
+              1.0,
+              hue,
+              0.7 + _random.nextDouble() * 0.2,
+              0.5 + _random.nextDouble() * 0.1);
+          break;
+        case 2: // Dark
+          newColor = HSLColor.fromAHSL(
+              1.0,
+              hue,
+              0.8 + _random.nextDouble() * 0.2,
+              0.3 + _random.nextDouble() * 0.1);
+          break;
+        case 3: // Bright accent
+          newColor = HSLColor.fromAHSL(
+              1.0,
+              hue,
+              0.85 + _random.nextDouble() * 0.15,
+              0.6 + _random.nextDouble() * 0.1);
+          break;
+        default:
+          newColor = HSLColor.fromAHSL(1.0, hue, 0.8, 0.5);
+      }
+
+      // Check if this color is different enough from previous colors
+      if (previousColors.isNotEmpty) {
+        bool isTooSimilar = previousColors
+            .any((prevColor) => _getColorDifference(newColor, prevColor) < 0.3);
+
+        // If too similar, adjust the hue slightly
+        if (isTooSimilar) {
+          hue = (hue + 30 + _random.nextDouble() * 30) % 360;
+          newColor = HSLColor.fromAHSL(
+              1.0, hue, newColor.saturation, newColor.lightness);
+        }
+      }
+
+      newColors.add(newColor.toColor());
+    }
+
+    return newColors..shuffle();
   }
 
   List<MeshGradientPoint> createGradientPoints() {
     final colors = colorsNotifier.value;
-    final basePositions = [
-      [-0.5, -0.5],
-      [0.3, -0.3],
-      [0.7, 1.3],
-      [1.5, 1.5],
-      [0.0, 0.0],
-    ];
+
+    // Position points in a circle
+    final angles =
+        List.generate(4, (index) => index * (pi / 2)); // 90 degree spacing
+    final radius = 0.7; // Distance from center
+
+    final basePositions = angles.map((angle) {
+      return [
+        0.5 + cos(angle) * radius, // Center X + radius * cos(angle)
+        0.5 + sin(angle) * radius, // Center Y + radius * sin(angle)
+      ];
+    }).toList();
 
     return List.generate(4, (index) {
-      final randomOffset = 0.4;
+      final randomOffset = 0.15;
       final x =
           basePositions[index][0] + (_random.nextDouble() - 0.5) * randomOffset;
       final y =
@@ -97,8 +192,8 @@ class CounterPageViewModel {
 
       return MeshGradientPoint(
         position: Offset(
-          x.clamp(-0.8, 1.8),
-          y.clamp(-0.8, 1.8),
+          x.clamp(-0.3, 1.3),
+          y.clamp(-0.3, 1.3),
         ),
         color: colors[index],
       );
@@ -109,67 +204,56 @@ class CounterPageViewModel {
     bool isColorChange = false,
   }) {
     final colors = colorsNotifier.value;
-    final targetPositions = isColorChange
-        ? [
-            [
-              -0.5 + _random.nextDouble() * 0.4,
-              -0.5 + _random.nextDouble() * 0.4
-            ],
-            [
-              0.4 + _random.nextDouble() * 0.6,
-              -0.3 + _random.nextDouble() * 0.6
-            ],
-            [
-              -0.3 + _random.nextDouble() * 0.6,
-              0.7 + _random.nextDouble() * 0.6
-            ],
-            [
-              1.5 + _random.nextDouble() * 0.4,
-              1.5 + _random.nextDouble() * 0.4
-            ],
-          ]
-        : [
-            [
-              -0.3 + _random.nextDouble() * 1.6,
-              -0.3 + _random.nextDouble() * 1.6
-            ],
-            [
-              -0.3 + _random.nextDouble() * 1.6,
-              -0.3 + _random.nextDouble() * 1.6
-            ],
-            [
-              -0.3 + _random.nextDouble() * 1.6,
-              -0.3 + _random.nextDouble() * 1.6
-            ],
-            [
-              -0.3 + _random.nextDouble() * 1.6,
-              -0.3 + _random.nextDouble() * 1.6
-            ],
-          ];
+    final isClockwise = _random.nextBool(); // Randomly choose direction
+    final radius = 0.7; // Same radius as base positions
 
-    final curves = isColorChange
-        ? [
-            Curves.easeInOutSine,
-            Curves.easeInOutSine,
-            Curves.easeInOutSine,
-            Curves.easeInOutSine,
-          ]
-        : [
-            Curves.linear,
-            Curves.linear,
-            Curves.linear,
-            Curves.linear,
-          ];
+    // Calculate current angles of points from current positions
+    final points = createGradientPoints();
+    final currentPoints = List.generate(4, (index) {
+      return [
+        colors[index],
+        atan2(
+          points[index].position.dy - 0.5, // Relative to center Y
+          points[index].position.dx - 0.5, // Relative to center X
+        )
+      ];
+    });
 
+    // Sort points by current angle to maintain relative positions
+    currentPoints.sort((a, b) => (a[1] as double).compareTo(b[1] as double));
+
+    // Generate target angles with rotation
+    final rotationAmount =
+        _random.nextDouble() * (pi / 4) + (pi / 6); // 30-75 degrees
+    final targetPositions = List.generate(4, (index) {
+      final currentAngle = currentPoints[index][1] as double;
+      final targetAngle = isClockwise
+          ? currentAngle + rotationAmount
+          : currentAngle - rotationAmount;
+
+      return [
+        0.5 + cos(targetAngle) * radius + (_random.nextDouble() - 0.5) * 0.15,
+        0.5 + sin(targetAngle) * radius + (_random.nextDouble() - 0.5) * 0.15,
+      ];
+    });
+
+    final curves = [
+      Curves.easeInOutCubic,
+      Curves.easeInOutCubic,
+      Curves.easeInOutCubic,
+      Curves.easeInOutCubic,
+    ];
+
+    // Match colors with their new positions maintaining the order
     return List.generate(4, (index) {
-      final targetX = targetPositions[index][0];
-      final targetY = targetPositions[index][1];
-
       return AnimationSequence(
-        pointIndex: index,
+        pointIndex: colors.indexOf(currentPoints[index][0] as Color),
         newPoint: MeshGradientPoint(
-          position: Offset(targetX, targetY),
-          color: colors[index],
+          position: Offset(
+            targetPositions[index][0],
+            targetPositions[index][1],
+          ),
+          color: currentPoints[index][0] as Color,
         ),
         interval: Interval(0, 1, curve: curves[index]),
       );
