@@ -239,7 +239,8 @@ class CounterPageViewModel {
     currentPoints.sort((a, b) => (a[1] as double).compareTo(b[1] as double));
 
     // Generate smooth rotation with slight randomness
-    final rotationAmount = _random.nextDouble() * (pi / 6) + (pi / 8); // Smaller rotation for smoother movement
+    final rotationAmount = _random.nextDouble() * (pi / 6) +
+        (pi / 8); // Smaller rotation for smoother movement
     final targetPositions = List.generate(4, (index) {
       final currentAngle = currentPoints[index][1] as double;
       final targetAngle = isClockwise
@@ -249,8 +250,12 @@ class CounterPageViewModel {
       // Reduced random offset for more consistent motion
       final randomOffset = 0.08;
       return [
-        0.5 + cos(targetAngle) * radius + (_random.nextDouble() - 0.5) * randomOffset,
-        0.5 + sin(targetAngle) * radius + (_random.nextDouble() - 0.5) * randomOffset,
+        0.5 +
+            cos(targetAngle) * radius +
+            (_random.nextDouble() - 0.5) * randomOffset,
+        0.5 +
+            sin(targetAngle) * radius +
+            (_random.nextDouble() - 0.5) * randomOffset,
       ];
     });
 
