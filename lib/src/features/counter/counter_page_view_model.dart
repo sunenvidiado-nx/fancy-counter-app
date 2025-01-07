@@ -59,41 +59,38 @@ class CounterPageViewModel {
 
   void _saveColors(List<Color> colors) {
     final mergedColors = colors.map((c) => c.toHexCodeString()).join(',');
-
     _prefs.setString(_colorKey, mergedColors);
   }
 
-  // Calculate color difference using HSL values
+  /// Calculate color difference to ensure visually distinct colors
   double _getColorDifference(HSLColor a, HSLColor b) {
-    // Weight hue differences more heavily to avoid similar colors
+    // Adjust hue difference to handle wraparound at 360 degrees
     double hueDiff = (a.hue - b.hue).abs();
     if (hueDiff > 180) hueDiff = 360 - hueDiff;
 
-    // Normalize differences to 0-1 range
     hueDiff /= 180;
     final satDiff = (a.saturation - b.saturation).abs();
     final lightDiff = (a.lightness - b.lightness).abs();
 
-    // Weight hue more heavily in the difference calculation
+    // Weight hue more heavily to ensure visually distinct colors
     return hueDiff * 0.7 + satDiff * 0.15 + lightDiff * 0.15;
   }
 
-  // Generate a new hue that's different from previous hues
+  /// Generate a distinct hue that is not too similar to previous hues
   double _generateDistinctHue(List<double> previousHues) {
     double hue;
     int attempts = 0;
-    const minHueDifference = 30.0; // Minimum difference in degrees
+    const minHueDifference = 30.0;
 
     do {
       hue = _random.nextDouble() * 360;
       attempts++;
 
-      // Skip the usual green and purple ranges more aggressively
+      // Skip green and purple ranges for more visually pleasing colors
       if ((hue >= 90 && hue <= 150) || (hue >= 270 && hue <= 330)) {
         continue;
       }
 
-      // Check if this hue is different enough from previous hues
       bool isDifferentEnough = previousHues.every((prevHue) {
         double diff = (hue - prevHue).abs();
         if (diff > 180) diff = 360 - diff;
@@ -108,6 +105,7 @@ class CounterPageViewModel {
     return hue;
   }
 
+  /// Generate a list of four colors with distinct hues and varying characteristics
   List<Color> _generateColors() {
     final previousColors =
         colorsNotifier.value.map((c) => HSLColor.fromColor(c)).toList();
@@ -118,27 +116,27 @@ class CounterPageViewModel {
       var hue = _generateDistinctHue(newHues);
       newHues.add(hue);
 
-      // Vary saturation and lightness based on position
       HSLColor newColor;
+      // Generate colors with different characteristics for visual variety
       switch (i) {
-        case 0: // Near-white
+        case 0: // Near-white for highlights
           newColor = HSLColor.fromAHSL(1.0, hue, 0.15, 0.95);
           break;
-        case 1: // Mid-tone
+        case 1: // Mid-tone with slight variation
           newColor = HSLColor.fromAHSL(
               1.0,
               hue,
               0.7 + _random.nextDouble() * 0.2,
               0.5 + _random.nextDouble() * 0.1);
           break;
-        case 2: // Dark
+        case 2: // Dark tone for depth
           newColor = HSLColor.fromAHSL(
               1.0,
               hue,
               0.8 + _random.nextDouble() * 0.2,
               0.3 + _random.nextDouble() * 0.1);
           break;
-        case 3: // Bright accent
+        case 3: // Bright accent for visual interest
           newColor = HSLColor.fromAHSL(
               1.0,
               hue,
@@ -149,12 +147,11 @@ class CounterPageViewModel {
           newColor = HSLColor.fromAHSL(1.0, hue, 0.8, 0.5);
       }
 
-      // Check if this color is different enough from previous colors
+      // Ensure new color is distinct from previous colors
       if (previousColors.isNotEmpty) {
         bool isTooSimilar = previousColors
             .any((prevColor) => _getColorDifference(newColor, prevColor) < 0.3);
 
-        // If too similar, adjust the hue slightly
         if (isTooSimilar) {
           hue = (hue + 30 + _random.nextDouble() * 30) % 360;
           newColor = HSLColor.fromAHSL(
@@ -168,18 +165,16 @@ class CounterPageViewModel {
     return newColors..shuffle();
   }
 
+  /// Create gradient points in a circular pattern for even distribution
   List<MeshGradientPoint> createGradientPoints() {
     final colors = colorsNotifier.value;
-
-    // Position points in a circle
-    final angles =
-        List.generate(4, (index) => index * (pi / 2)); // 90 degree spacing
-    final radius = 0.7; // Distance from center
+    final angles = List.generate(4, (index) => index * (pi / 2));
+    final radius = 0.7;
 
     final basePositions = angles.map((angle) {
       return [
-        0.5 + cos(angle) * radius, // Center X + radius * cos(angle)
-        0.5 + sin(angle) * radius, // Center Y + radius * sin(angle)
+        0.5 + cos(angle) * radius,
+        0.5 + sin(angle) * radius,
       ];
     }).toList();
 
@@ -200,51 +195,65 @@ class CounterPageViewModel {
     });
   }
 
+  /// Create animation sequences for gradient points
   List<AnimationSequence> createGradientAnimationSequences({
     bool isColorChange = false,
   }) {
     final colors = colorsNotifier.value;
-    final isClockwise = _random.nextBool(); // Randomly choose direction
-    final radius = 0.7; // Same radius as base positions
-
-    // Calculate current angles of points from current positions
     final points = createGradientPoints();
+
+    if (isColorChange) {
+      // Minimal movement during color transitions for smooth effect
+      return List.generate(4, (index) {
+        final tinyOffset = 0.05;
+        final currentPos = points[index].position;
+
+        return AnimationSequence(
+          pointIndex: index,
+          newPoint: MeshGradientPoint(
+            position: Offset(
+              currentPos.dx + (_random.nextDouble() - 0.5) * tinyOffset,
+              currentPos.dy + (_random.nextDouble() - 0.5) * tinyOffset,
+            ),
+            color: colors[index],
+          ),
+          interval: Interval(0, 1, curve: Curves.easeInOutCubic),
+        );
+      });
+    }
+
+    // Calculate rotational animation for regular updates
+    final isClockwise = _random.nextBool();
+    final radius = 0.7;
+
     final currentPoints = List.generate(4, (index) {
       return [
         colors[index],
         atan2(
-          points[index].position.dy - 0.5, // Relative to center Y
-          points[index].position.dx - 0.5, // Relative to center X
+          points[index].position.dy - 0.5,
+          points[index].position.dx - 0.5,
         )
       ];
     });
 
-    // Sort points by current angle to maintain relative positions
     currentPoints.sort((a, b) => (a[1] as double).compareTo(b[1] as double));
 
-    // Generate target angles with rotation
-    final rotationAmount =
-        _random.nextDouble() * (pi / 4) + (pi / 6); // 30-75 degrees
+    // Generate smooth rotation with slight randomness
+    final rotationAmount = _random.nextDouble() * (pi / 6) + (pi / 8); // Smaller rotation for smoother movement
     final targetPositions = List.generate(4, (index) {
       final currentAngle = currentPoints[index][1] as double;
       final targetAngle = isClockwise
           ? currentAngle + rotationAmount
           : currentAngle - rotationAmount;
 
+      // Reduced random offset for more consistent motion
+      final randomOffset = 0.08;
       return [
-        0.5 + cos(targetAngle) * radius + (_random.nextDouble() - 0.5) * 0.15,
-        0.5 + sin(targetAngle) * radius + (_random.nextDouble() - 0.5) * 0.15,
+        0.5 + cos(targetAngle) * radius + (_random.nextDouble() - 0.5) * randomOffset,
+        0.5 + sin(targetAngle) * radius + (_random.nextDouble() - 0.5) * randomOffset,
       ];
     });
 
-    final curves = [
-      Curves.easeInOutCubic,
-      Curves.easeInOutCubic,
-      Curves.easeInOutCubic,
-      Curves.easeInOutCubic,
-    ];
-
-    // Match colors with their new positions maintaining the order
     return List.generate(4, (index) {
       return AnimationSequence(
         pointIndex: colors.indexOf(currentPoints[index][0] as Color),
@@ -255,14 +264,13 @@ class CounterPageViewModel {
           ),
           color: currentPoints[index][0] as Color,
         ),
-        interval: Interval(0, 1, curve: curves[index]),
+        interval: Interval(0, 1, curve: Curves.easeInOutCubic),
       );
     });
   }
 
   void increment() {
     final newCount = counterNotifier.value + 1;
-
     counterNotifier.value = newCount;
     _pendingCount = newCount;
 
@@ -285,6 +293,7 @@ class CounterPageViewModel {
   Future<void> reset() async {
     counterNotifier.value = 0;
     await _prefs.setInt(_counterKey, 0);
+    _changeColors();
   }
 
   void dispose() {

@@ -43,7 +43,7 @@ class _CounterPageState extends State<CounterPage>
     Future<void> animate() async {
       while (mounted) {
         await _gradientController.animateSequence(
-          duration: const Duration(seconds: 16),
+          duration: const Duration(seconds: 8),
           sequences:
               _viewModel.createGradientAnimationSequences(isColorChange: false),
         );
